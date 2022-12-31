@@ -112,7 +112,7 @@ async def initrec(interaction: Interaction):
     # Responds in the console that the command has been ran
     print(f"> {Style.BRIGHT}{interaction.user}{Style.RESET_ALL} initialized their record.")
     with open(f"{str(interaction.user)}.json", "w") as record:
-        empty_dict = {"wins":0,"losses":0,"rank":"?","agents":{"wins":0,"losses":0}}
+        empty_dict = {"wins":0,"losses":0,"rank":"?","agents":{}}
         json.dump(empty_dict,record,indent=2)
 
     # Then responds in the channel with this message
@@ -132,6 +132,16 @@ async def initrec(interaction: Interaction):
         > Updates regarding the Active Developer badge can be found in the
         > Discord Developers server -> https://discord.gg/discord-developers - in the #active-dev-badge channel.
     \"""))"""
+
+def print__overall_stats(stats: dict) -> str:
+    retStr = inspect.cleandoc(f"""
+        > You currently have **{stats["wins"]} wins**.
+        > You currently have **{stats["losses"]} losses**.
+        > Your rank is currently {stats["rank"]}
+        > Your w/l rate is **{(stats["wins"]/stats["losses"]) if stats["losses"] > 0 else stats["wins"]}**
+        > Use [fill command in later] for agent specific stats
+    """)
+    return retStr
 
 @client.tree.command()
 async def updaterec(interaction: Interaction):
@@ -158,7 +168,10 @@ async def updaterec(interaction: Interaction):
         return None
     
     stats = json.load(record)
+
     print(stats)
+    await interaction.response.send_message(print__overall_stats(stats))
+    #TODO: Figure out how command args work
     
 
 # Runs the bot with the token you provided
