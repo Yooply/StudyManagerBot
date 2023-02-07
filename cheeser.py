@@ -3,6 +3,7 @@ import json
 import inspect
 import sys
 import logging
+from typing import Optional
 
 from colorama import Fore, Style
 
@@ -109,7 +110,8 @@ class StudyMananger(Client):
 # Variable to store the bot class and interact with it
 # Since this is a simple bot to run 1 command over slash commands
 # We then do not need any intents to listen to events
-client = StudyMananger(intents=Intents.none())
+botIntents = Intents.default()
+client = StudyMananger(intents=botIntents)
 
 
 @client.event
@@ -127,14 +129,18 @@ async def on_ready():
 
 
 @client.tree.command()
-async def hello(interaction: Interaction):
-    """ Says hello or something """
+@app_commands.describe(
+    time = "The time that you want me to ping people at. Use 24 hour time",
+    date = "Optionally the date you want me to ping people at: mm:dd:yyyy; Defaults to today",
+)
+async def schedule_ring(interaction: Interaction, time: str, date: Optional[str] = None):
+    """ Post a message where anyone that reacts will be pinged at the scheduled time. """
     # Responds in the console that the command has been ran
-    print(f"> {Style.BRIGHT}{interaction.user}{Style.RESET_ALL} used the command.")
+    print(f"> {Style.BRIGHT}{interaction.user}{Style.RESET_ALL} used the schedule_ping command.")
 
     # Then responds in the channel with this message
     await interaction.response.send_message(inspect.cleandoc(f"""
-        Hi **{interaction.user}**, example message
+        Hi **{interaction.user}**, you gave me **{time}** on **{date}**
     """))
 
 # Runs the bot with the token you provided
