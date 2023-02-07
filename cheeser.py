@@ -2,6 +2,7 @@ import requests
 import json
 import inspect
 import sys
+import logging
 
 from colorama import Fore, Style
 
@@ -137,4 +138,5 @@ async def hello(interaction: Interaction):
     """))
 
 # Runs the bot with the token you provided
-client.run(token)
+handler = logging.FileHandler(filename='discord.log', encoding="utf-8", mode="w")
+client.run(token, log_handler=handler, log_level=logging.DEBUG)

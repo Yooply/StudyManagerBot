@@ -1,2 +1,7 @@
+
+# Confidential Data
 *.json
 tokens.txt
+
+# Logs
+*.log
