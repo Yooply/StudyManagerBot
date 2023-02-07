@@ -20,19 +20,7 @@ except ImportError:
 
 # ASCII logo, uses Colorama for coloring the logo.
 logo = f"""
-{Fore.LIGHTBLUE_EX}       {Fore.GREEN}cclloooooooooooooo.
-{Fore.LIGHTBLUE_EX},;;;:{Fore.GREEN}oooooooooooooooooooooo.
-{Fore.LIGHTBLUE_EX};;;;{Fore.GREEN}oooooo{Fore.WHITE}kKXK{Fore.GREEN}ooo{Fore.WHITE}NMMWx{Fore.GREEN}ooooo:..
-{Fore.LIGHTBLUE_EX};;;;{Fore.GREEN}oooooo{Fore.WHITE}XMMN{Fore.GREEN}oooo{Fore.WHITE}XNK0x{Fore.GREEN}dddddoo
-{Fore.LIGHTBLUE_EX};;;;{Fore.GREEN}looo{Fore.WHITE}kNMMWx{Fore.GREEN}ooood{Fore.BLUE}xxxxxxxxxxxxxo
-{Fore.LIGHTBLUE_EX};;;;{Fore.GREEN}ld{Fore.WHITE}kXXXXK{Fore.GREEN}ddddd{Fore.BLUE}xxxxxxxxxxxxxxxx
-{Fore.LIGHTBLUE_EX};;{Fore.BLUE}lxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-{Fore.LIGHTBLUE_EX};;{Fore.BLUE}xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-{Fore.LIGHTBLUE_EX};;{Fore.BLUE}xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-{Fore.LIGHTBLUE_EX};;{Fore.BLUE}xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-{Fore.LIGHTBLUE_EX};;{Fore.BLUE}xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-{Fore.LIGHTBLUE_EX};;{Fore.BLUE}xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-{Fore.BLUE}ldxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx{Fore.RESET}
+Logo Here
 """
 
 # inspect.cleandoc() is used to remove the indentation from the message
@@ -40,7 +28,7 @@ logo = f"""
 # Typicly developers woudln't use cleandoc rather they move the text
 # all the way to the left
 print(logo + inspect.cleandoc(f"""
-    Hey, welcome to the active developer badge bot.
+    Hey, welcome to Study Manager Bot
     Please enter your bot's token below to continue.
 
     {Style.DIM}Don't close this application after entering the token
@@ -107,7 +95,7 @@ with open("config.json", "w") as f:
     json.dump(config, f, indent=2)
 
 
-class FunnyBadge(Client):
+class StudyMananger(Client):
     def __init__(self, *, intents: Intents):
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
@@ -120,7 +108,7 @@ class FunnyBadge(Client):
 # Variable to store the bot class and interact with it
 # Since this is a simple bot to run 1 command over slash commands
 # We then do not need any intents to listen to events
-client = FunnyBadge(intents=Intents.none())
+client = StudyMananger(intents=Intents.none())
 
 
 @client.event
@@ -145,19 +133,7 @@ async def hello(interaction: Interaction):
 
     # Then responds in the channel with this message
     await interaction.response.send_message(inspect.cleandoc(f"""
-        Hi **{interaction.user}**, thank you for saying hello to me.
-
-        > __**Where's my badge?**__
-        > Eligibility for the badge is checked by Discord in intervals,
-        > at this moment in time, 24 hours is the recommended time to wait before trying.
-
-        > __**It's been 24 hours, now how do I get the badge?**__
-        > If it's already been 24 hours, you can head to
-        > https://discord.com/developers/active-developer and fill out the 'form' there.
-
-        > __**Active Developer Badge Updates**__
-        > Updates regarding the Active Developer badge can be found in the
-        > Discord Developers server -> https://discord.gg/discord-developers - in the #active-dev-badge channel.
+        Hi **{interaction.user}**, example message
     """))
 
 # Runs the bot with the token you provided

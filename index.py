@@ -144,7 +144,7 @@ def print__overall_stats(stats: dict) -> str:
     return retStr
 
 @client.tree.command()
-async def updaterec(interaction: Interaction):
+async def updaterec(interaction: Interaction, arg1: str = commands.parameter()):
     """ Update record using command args """
     print(f"> {Style.BRIGHT}{interaction.user}{Style.RESET_ALL} updated their record.")
 
@@ -168,7 +168,8 @@ async def updaterec(interaction: Interaction):
         return None
     
     stats = json.load(record)
-
+    print(str(interaction.data))
+    print(str(interaction.command.parameters))
     print(stats)
     await interaction.response.send_message(print__overall_stats(stats))
     #TODO: Figure out how command args work
