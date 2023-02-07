@@ -3,7 +3,8 @@ import json
 import inspect
 import sys
 import logging
-from typing import Optional
+import discord
+from typing import Optional, NamedTuple, Union
 
 from colorama import Fore, Style
 
@@ -13,7 +14,7 @@ if sys.version_info < (3, 7):
 
 # Now make sure that the discord.py library is installed or/and is up to date
 try:
-    from discord import app_commands, Intents, Client, Interaction
+    from discord import app_commands, Intents, Client, Interaction, Message, ui, Embed, ButtonStyle
 except ImportError:
     exit(
         "Either discord.py is not installed or you are running an older version of it. "
@@ -112,7 +113,7 @@ class StudyMananger(Client):
 # We then do not need any intents to listen to events
 botIntents = Intents.default()
 client = StudyMananger(intents=botIntents)
-
+botChannelId = 1053602481214586912
 
 @client.event
 async def on_ready():
@@ -133,7 +134,7 @@ async def on_ready():
     time = "The time that you want me to ping people at. Use 24 hour time",
     date = "Optionally the date you want me to ping people at: mm:dd:yyyy; Defaults to today",
 )
-async def schedule_ring(interaction: Interaction, time: str, date: Optional[str] = None):
+async def schedule_ping(interaction: Interaction, time: str, date: Optional[str] = None):
     """ Post a message where anyone that reacts will be pinged at the scheduled time. """
     # Responds in the console that the command has been ran
     print(f"> {Style.BRIGHT}{interaction.user}{Style.RESET_ALL} used the schedule_ping command.")
@@ -142,6 +143,45 @@ async def schedule_ring(interaction: Interaction, time: str, date: Optional[str]
     await interaction.response.send_message(inspect.cleandoc(f"""
         Hi **{interaction.user}**, you gave me **{time}** on **{date}**
     """))
+
+@client.tree.context_menu(name='Test for channels')
+async def report_message(interaction: Interaction, message: Message):
+    # We're sending this response message with ephemeral=True, so only the command executor can see it
+    await interaction.response.send_message(
+        f'Thanks for reporting this message by {message.author.mention} to our moderators.', ephemeral=True
+    )
+
+    # Handle report by sending it into a log channel
+    log_channel = interaction.guild.get_channel(botChannelId)  # replace with your channel id
+
+    embed = Embed(title='Test Message')
+    if message.content:
+        embed.description = message.content
+
+    embed.set_author(name=message.author.display_name, icon_url=message.author.display_avatar.url)
+    embed.timestamp = message.created_at
+
+    url_view = ui.View()
+    url_view.add_item(ui.Button(label='Go to Message', style=ButtonStyle.url, url=message.jump_url))
+
+    await log_channel.send(embed=embed, view=url_view)
+
+@client.tree.command()
+@app_commands.describe(channel='The channel to get info of')
+async def channel_info(interaction: Interaction, channel: Union[discord.VoiceChannel, discord.TextChannel]):
+    """Shows basic channel info for a text or voice channel."""
+
+    embed = discord.Embed(title='Channel Info')
+    embed.add_field(name='Name', value=channel.name, inline=True)
+    embed.add_field(name='ID', value=channel.id, inline=True)
+    embed.add_field(
+        name='Type',
+        value='Voice' if isinstance(channel, discord.VoiceChannel) else 'Text',
+        inline=True,
+    )
+
+    embed.set_footer(text='Created').timestamp = channel.created_at
+    await interaction.response.send_message(embed=embed)
 
 # Runs the bot with the token you provided
 handler = logging.FileHandler(filename='discord.log', encoding="utf-8", mode="w")
