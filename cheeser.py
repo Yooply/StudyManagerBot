@@ -171,11 +171,12 @@ async def schedule_ping(interaction: Interaction, time: str, date: Optional[str]
     if datetime.datetime.now() > pingDatetime:
         raise BadArgument("Datetime has already passed")
 
-    # Then responds in the channel with this message
+    # Respond to user
     await interaction.response.send_message(inspect.cleandoc(f"""
         Hi **{interaction.user}**, ping scheduled for {pingDatetime.ctime()}
     """), ephemeral=True)
 
+    # Create event embed
     embed = Embed(title="Study Call")
     embed.description = inspect.cleandoc(f"""
         Study call scheduled for **{pingDatetime.strftime("%H:%M")}** on **{pingDatetime.strftime("%m/%d/%y")}**. Please react to this message if you would like to be pinged then.
@@ -190,6 +191,7 @@ async def schedule_ping(interaction: Interaction, time: str, date: Optional[str]
 
 @client.tree.error
 async def schedule_ping_error(interaction: Interaction, error):
+    """ Error handler for errors raised in the /schedule_ping command """
     print(type(error))
 
 # Runs the bot with the token you provided
