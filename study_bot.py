@@ -17,7 +17,8 @@ if sys.version_info < (3, 7):
 try:
     from discord import app_commands, Intents, Client, Interaction, Message, ui, Embed, ButtonStyle
     # from discord.ext.commands import BadArgument, Context, CommandError
-    from discord.app_commands import CommandInvokeError
+    from discord.app_commands import CommandInvokeError, AppCommandError
+    from discord.ext.commands import BadArgument
 except ImportError:
     exit(
         "Either discord.py is not installed or you are running an older version of it. "
@@ -150,11 +151,11 @@ async def schedule_ping(interaction: Interaction, time: str, date: Optional[str]
         try:
             fields = date.split("/")
             if len(fields) < 3:
-                raise BadArgument("Bad date")
+                raise CommandInvokeError(schedule_ping, BadArgument("Bad date"))
             year = int(fields[2])
             pDate = datetime.date(year, int(fields[0]), int(fields[1]))
         except ValueError:
-            raise BadArgument("Bad date")
+            raise CommandInvokeError(schedule_ping, BadArgument("Bad date"))
     else:
         pDate = datetime.date.today()
     
@@ -162,14 +163,14 @@ async def schedule_ping(interaction: Interaction, time: str, date: Optional[str]
     try:
         fields = time.split(":")
         if len(fields) != 2:
-            raise BadArgument("Bad time")
+            raise CommandInvokeError(schedule_ping, BadArgument("Bad time"))
         pTime = datetime.time(int(fields[0]), int(fields[1]))
     except ValueError:
-        raise BadArgument("Bad time")
+        raise CommandInvokeError(schedule_ping, BadArgument("Bad time"))
     
     pingDatetime = datetime.datetime.combine(pDate, pTime)
     if datetime.datetime.now() > pingDatetime:
-        raise BadArgument("Datetime has already passed")
+        raise CommandInvokeError(schedule_ping, BadArgument("Datetime has already passed"))
 
     # Respond to user
     await interaction.response.send_message(inspect.cleandoc(f"""
@@ -190,9 +191,11 @@ async def schedule_ping(interaction: Interaction, time: str, date: Optional[str]
     await response_channel.send(embed=embed)
 
 @client.tree.error
-async def schedule_ping_error(interaction: Interaction, error):
+async def schedule_ping_error(interaction: Interaction, error: AppCommandError):
     """ Error handler for errors raised in the /schedule_ping command """
-    print(type(error))
+    if isinstance(error, CommandInvokeError):
+        fields = str(error).split(":")
+        await interaction.response.send_message(f"**[Error]** Bad Command:{fields[2]}")
 
 # Runs the bot with the token you provided
 handler = logging.FileHandler(filename='discord.log', encoding="utf-8", mode="w")
