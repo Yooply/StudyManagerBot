@@ -4,6 +4,7 @@ import inspect
 import sys
 import logging
 import discord
+import datetime
 from typing import Optional, NamedTuple, Union
 
 from colorama import Fore, Style
@@ -15,6 +16,8 @@ if sys.version_info < (3, 7):
 # Now make sure that the discord.py library is installed or/and is up to date
 try:
     from discord import app_commands, Intents, Client, Interaction, Message, ui, Embed, ButtonStyle
+    # from discord.ext.commands import BadArgument, Context, CommandError
+    from discord.app_commands import CommandInvokeError
 except ImportError:
     exit(
         "Either discord.py is not installed or you are running an older version of it. "
@@ -108,12 +111,15 @@ class StudyMananger(Client):
         await self.tree.sync()
 
 
+
 # Variable to store the bot class and interact with it
 # Since this is a simple bot to run 1 command over slash commands
 # We then do not need any intents to listen to events
 botIntents = Intents.default()
 client = StudyMananger(intents=botIntents)
 botChannelId = 1053602481214586912
+scheduledPings = {}
+scheduledTimes = []
 
 @client.event
 async def on_ready():
@@ -131,57 +137,60 @@ async def on_ready():
 
 @client.tree.command()
 @app_commands.describe(
-    time = "The time that you want me to ping people at. Use 24 hour time",
-    date = "Optionally the date you want me to ping people at: mm:dd:yyyy; Defaults to today",
+    time = "24 Time you want to schedule: HH:MM",
+    date = "[Opt] Date for Ping: mm/dd/yyyy",
 )
 async def schedule_ping(interaction: Interaction, time: str, date: Optional[str] = None):
     """ Post a message where anyone that reacts will be pinged at the scheduled time. """
     # Responds in the console that the command has been ran
     print(f"> {Style.BRIGHT}{interaction.user}{Style.RESET_ALL} used the schedule_ping command.")
 
+    # Date Validation
+    if date:
+        try:
+            fields = date.split("/")
+            if len(fields) < 3:
+                raise BadArgument("Bad date")
+            year = int(fields[2])
+            pDate = datetime.date(year, int(fields[0]), int(fields[1]))
+        except ValueError:
+            raise BadArgument("Bad date")
+    else:
+        pDate = datetime.date.today()
+    
+    # Time validation
+    try:
+        fields = time.split(":")
+        if len(fields) != 2:
+            raise BadArgument("Bad time")
+        pTime = datetime.time(int(fields[0]), int(fields[1]))
+    except ValueError:
+        raise BadArgument("Bad time")
+    
+    pingDatetime = datetime.datetime.combine(pDate, pTime)
+    if datetime.datetime.now() > pingDatetime:
+        raise BadArgument("Datetime has already passed")
+
     # Then responds in the channel with this message
     await interaction.response.send_message(inspect.cleandoc(f"""
-        Hi **{interaction.user}**, you gave me **{time}** on **{date}**
-    """))
+        Hi **{interaction.user}**, ping scheduled for {pingDatetime.ctime()}
+    """), ephemeral=True)
 
-@client.tree.context_menu(name='Test for channels')
-async def report_message(interaction: Interaction, message: Message):
-    # We're sending this response message with ephemeral=True, so only the command executor can see it
-    await interaction.response.send_message(
-        f'Thanks for reporting this message by {message.author.mention} to our moderators.', ephemeral=True
-    )
+    embed = Embed(title="Study Call")
+    embed.description = inspect.cleandoc(f"""
+        Study call scheduled for **{pingDatetime.strftime("%H:%M")}** on **{pingDatetime.strftime("%m/%d/%y")}**. Please react to this message if you would like to be pinged then.
+    """)
+    embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
+    embed.add_field(name="Time", value=pingDatetime.strftime("%H:%M"), inline=True)
+    embed.add_field(name="Date", value=pingDatetime.strftime("%m/%d/%y"), inline=True)
+    embed.set_footer(text="Created").timestamp = interaction.created_at
+    
+    response_channel = interaction.guild.get_channel(botChannelId)
+    await response_channel.send(embed=embed)
 
-    # Handle report by sending it into a log channel
-    log_channel = interaction.guild.get_channel(botChannelId)  # replace with your channel id
-
-    embed = Embed(title='Test Message')
-    if message.content:
-        embed.description = message.content
-
-    embed.set_author(name=message.author.display_name, icon_url=message.author.display_avatar.url)
-    embed.timestamp = message.created_at
-
-    url_view = ui.View()
-    url_view.add_item(ui.Button(label='Go to Message', style=ButtonStyle.url, url=message.jump_url))
-
-    await log_channel.send(embed=embed, view=url_view)
-
-@client.tree.command()
-@app_commands.describe(channel='The channel to get info of')
-async def channel_info(interaction: Interaction, channel: Union[discord.VoiceChannel, discord.TextChannel]):
-    """Shows basic channel info for a text or voice channel."""
-
-    embed = discord.Embed(title='Channel Info')
-    embed.add_field(name='Name', value=channel.name, inline=True)
-    embed.add_field(name='ID', value=channel.id, inline=True)
-    embed.add_field(
-        name='Type',
-        value='Voice' if isinstance(channel, discord.VoiceChannel) else 'Text',
-        inline=True,
-    )
-
-    embed.set_footer(text='Created').timestamp = channel.created_at
-    await interaction.response.send_message(embed=embed)
+@client.tree.error
+async def schedule_ping_error(interaction: Interaction, error):
+    print(type(error))
 
 # Runs the bot with the token you provided
 handler = logging.FileHandler(filename='discord.log', encoding="utf-8", mode="w")
