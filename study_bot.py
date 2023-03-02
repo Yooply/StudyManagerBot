@@ -15,7 +15,7 @@ if sys.version_info < (3, 7):
 
 # Now make sure that the discord.py library is installed or/and is up to date
 try:
-    from discord import app_commands, Intents, Client, Interaction, Message, ui, Embed, ButtonStyle
+    from discord import app_commands, Intents, Client, Interaction, Message, ui, Embed, ButtonStyle, TextChannel
     # from discord.ext.commands import BadArgument, Context, CommandError
     from discord.app_commands import CommandInvokeError, AppCommandError
     from discord.ext.commands import BadArgument
@@ -189,6 +189,15 @@ async def schedule_ping(interaction: Interaction, time: str, date: Optional[str]
     
     response_channel = interaction.guild.get_channel(botChannelId)
     await response_channel.send(embed=embed)
+
+@client.tree.command()
+@app_commands.describe(channel = "Channel for bot to respond to.")
+async def set_default_channel(interaction: Interaction, channel: TextChannel):
+    global botChannelId
+    botChannelId = channel.id
+    await interaction.response.send_message(inspect.cleandoc(f"""
+        "The channel this bot will respond in is {channel.name}."
+    """), ephemeral=True)
 
 @client.tree.error
 async def schedule_ping_error(interaction: Interaction, error: AppCommandError):
