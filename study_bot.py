@@ -135,18 +135,10 @@ async def on_ready():
         {Fore.LIGHTBLUE_EX}https://discord.com/api/oauth2/authorize?client_id={client.user.id}&scope=applications.commands%20bot{Fore.RESET}
     """), end="\n\n")
 
-
-@client.tree.command()
-@app_commands.describe(
-    time = "24 Time you want to schedule: HH:MM",
-    date = "[Opt] Date for Ping: mm/dd/yyyy",
-)
-async def schedule_ping(interaction: Interaction, time: str, date: Optional[str] = None):
-    """ Post a message where anyone that reacts will be pinged at the scheduled time. """
-    # Responds in the console that the command has been ran
-    print(f"> {Style.BRIGHT}{interaction.user}{Style.RESET_ALL} used the schedule_ping command.")
-
-    # Date Validation
+async def parseDateTime(time: str, date: str | None) -> datetime.datetime:
+    """ Helper to parse out datetime from a time and date strings. Returns datetime
+        object representation of time and date string parameters.
+    """
     if date:
         try:
             fields = date.split("/")
@@ -172,27 +164,50 @@ async def schedule_ping(interaction: Interaction, time: str, date: Optional[str]
     if datetime.datetime.now() > pingDatetime:
         raise CommandInvokeError(schedule_ping, BadArgument("Datetime has already passed"))
 
+    return pingDatetime
+
+async def generateScheduledMeetingPrompt(interaction: Interaction, dt: datetime.datetime) -> Embed:
+    """ Create an embed object to respond to a schedule ping request """
+    # Create event embed
+    embed = Embed(title="Study Call")
+    embed.description = inspect.cleandoc(f"""
+        Study call scheduled for **{dt.strftime("%H:%M")}** on **{dt.strftime("%m/%d/%y")}**. Please react to this message if you would like to be pinged then.
+    """)
+    embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
+    embed.add_field(name="Time", value=dt.strftime("%H:%M"), inline=True)
+    embed.add_field(name="Date", value=dt.strftime("%m/%d/%y"), inline=True)
+    embed.set_footer(text="Created").timestamp = interaction.created_at
+    return embed
+
+
+@client.tree.command()
+@app_commands.describe(
+    time = "24 Time you want to schedule: HH:MM",
+    date = "[Opt] Date for Ping: mm/dd/yyyy",
+)
+async def schedule_ping(interaction: Interaction, time: str, date: Optional[str] = None):
+    """ Post a message where anyone that reacts will be pinged at the scheduled time. """
+    # Responds in the console that the command has been ran
+    print(f"> {Style.BRIGHT}{interaction.user}{Style.RESET_ALL} used the schedule_ping command.")
+
+    # Date Validation; Errors will catch in the global error handler
+    pingDatetime = await parseDateTime(time, date);
+
     # Respond to user
     await interaction.response.send_message(inspect.cleandoc(f"""
         Hi **{interaction.user}**, ping scheduled for {pingDatetime.ctime()}
     """), ephemeral=True)
 
-    # Create event embed
-    embed = Embed(title="Study Call")
-    embed.description = inspect.cleandoc(f"""
-        Study call scheduled for **{pingDatetime.strftime("%H:%M")}** on **{pingDatetime.strftime("%m/%d/%y")}**. Please react to this message if you would like to be pinged then.
-    """)
-    embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
-    embed.add_field(name="Time", value=pingDatetime.strftime("%H:%M"), inline=True)
-    embed.add_field(name="Date", value=pingDatetime.strftime("%m/%d/%y"), inline=True)
-    embed.set_footer(text="Created").timestamp = interaction.created_at
-    
+    # Generate embed
+    embed = await generateScheduledMeetingPrompt(interaction, pingDatetime)
+
     response_channel = interaction.guild.get_channel(botChannelId)
     await response_channel.send(embed=embed)
 
 @client.tree.command()
 @app_commands.describe(channel = "Channel for bot to respond to.")
 async def set_default_channel(interaction: Interaction, channel: TextChannel):
+    """ Select which channel this bot puts scheduled messages """
     global botChannelId
     botChannelId = channel.id
     await interaction.response.send_message(inspect.cleandoc(f"""
@@ -202,6 +217,7 @@ async def set_default_channel(interaction: Interaction, channel: TextChannel):
 @client.tree.error
 async def schedule_ping_error(interaction: Interaction, error: AppCommandError):
     """ Error handler for errors raised in the /schedule_ping command """
+    # Potentially unecessary now
     if isinstance(error, CommandInvokeError):
         fields = str(error).split(":")
         await interaction.response.send_message(f"**[Error]** Bad Command:{fields[2]}")
