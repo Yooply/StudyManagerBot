@@ -25,10 +25,18 @@ except ImportError:
         "Please make sure by re-installing the requirements."
     )
 
-# ASCII logo, uses Colorama for coloring the logo.
-logo = f"""
-Logo Here
-"""
+# ASCII logo, uses Colorama for coloring the logo. ASCII art ripped from https://www.asciiart.eu/books/books
+logo = inspect.cleandoc(f"""
+{Fore.BLUE}
+          ______ ______
+        _/      Y      \_
+       // ~~ ~~ | ~~ ~  \\\\
+      // ~ ~ ~~ | ~~~ ~~ \\\\      Original Unknown
+     //________.|.________\\\\     Diddled by David Issel
+    `----------`-'----------'
+{Fore.RESET}
+\n
+""")
 
 # inspect.cleandoc() is used to remove the indentation from the message
 # when using triple quotes (makes the code much cleaner)
@@ -120,6 +128,7 @@ botIntents = Intents.default()
 client = StudyMananger(intents=botIntents)
 botChannelId = 1053602481214586912
 scheduledPings = {}
+guild_channels = {}
 scheduledTimes = []
 
 @client.event
@@ -161,8 +170,8 @@ async def parseDateTime(time: str, date: str) -> datetime.datetime:
     except ValueError:
         raise CommandInvokeError(schedule_ping, BadArgument("Bad time"))
     
-    pingDatetime = datetime.datetime.combine(pDate, pTime)
-    if datetime.datetime.now() > pingDatetime:
+    pingDatetime = (datetime.datetime.combine(pDate, pTime)).astimezone(datetime.timezone("PST"))
+    if (datetime.datetime.now()).astimezone(datetime.timezone("PST")) > pingDatetime:
         print(datetime.datetime.now())
         raise CommandInvokeError(schedule_ping, BadArgument("Datetime has already passed"))
 
@@ -203,17 +212,17 @@ async def schedule_ping(interaction: Interaction, time: str, date: Optional[str]
     # Generate embed
     embed = await generateScheduledMeetingPrompt(interaction, pingDatetime)
 
-    response_channel = interaction.guild.get_channel(botChannelId)
+    response_channel = interaction.guild.get_channel(guild_channels[interaction.guild.id])
     await response_channel.send(embed=embed)
 
 @client.tree.command()
 @app_commands.describe(channel = "Channel for bot to respond to.")
 async def set_default_channel(interaction: Interaction, channel: TextChannel):
     """ Select which channel this bot puts scheduled messages """
-    global botChannelId
-    botChannelId = channel.id
+    global guild_channels
+    guild_channels[interaction.guild.id] = channel.id
     await interaction.response.send_message(inspect.cleandoc(f"""
-        "The channel this bot will respond in is {channel.name}."
+        The channel this bot will respond in is ***{channel.name}***.
     """), ephemeral=True)
 
 @client.tree.error
@@ -222,7 +231,7 @@ async def schedule_ping_error(interaction: Interaction, error: AppCommandError):
     # Potentially unecessary now
     if isinstance(error, CommandInvokeError):
         fields = str(error).split(":")
-        await interaction.response.send_message(f"**[Error]** Bad Command:{fields[2]}")
+        await interaction.response.send_message(f"**[Error]** Bad Command:{fields[2]}", ephemeral=True)
 
 # Runs the bot with the token you provided
 handler = logging.FileHandler(filename='discord.log', encoding="utf-8", mode="w")
