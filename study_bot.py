@@ -135,7 +135,7 @@ async def on_ready():
         {Fore.LIGHTBLUE_EX}https://discord.com/api/oauth2/authorize?client_id={client.user.id}&scope=applications.commands%20bot{Fore.RESET}
     """), end="\n\n")
 
-async def parseDateTime(time: str, date: str | None) -> datetime.datetime:
+async def parseDateTime(time: str, date: str) -> datetime.datetime:
     """ Helper to parse out datetime from a time and date strings. Returns datetime
         object representation of time and date string parameters.
     """
@@ -150,6 +150,7 @@ async def parseDateTime(time: str, date: str | None) -> datetime.datetime:
             raise CommandInvokeError(schedule_ping, BadArgument("Bad date"))
     else:
         pDate = datetime.date.today()
+        print(pDate)
     
     # Time validation
     try:
@@ -162,6 +163,7 @@ async def parseDateTime(time: str, date: str | None) -> datetime.datetime:
     
     pingDatetime = datetime.datetime.combine(pDate, pTime)
     if datetime.datetime.now() > pingDatetime:
+        print(datetime.datetime.now())
         raise CommandInvokeError(schedule_ping, BadArgument("Datetime has already passed"))
 
     return pingDatetime
