@@ -21,3 +21,12 @@ Run the bot using the following steps:
 4. Use the link it gives you to join your server
 5. Use `/set_default_channel` and select a channel in your server for the bot to use from discord
 6. Use the bot to do scheduled pings
+
+## Potential Problems
+
+- Does not work with m1 macs for some reason.
+- Does not work on public networks
+- Needs python >=3.7
+- Need to install dependencies
+- Need to regenerate tokens
+
