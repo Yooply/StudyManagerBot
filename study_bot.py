@@ -20,6 +20,7 @@ try:
     # from discord.ext.commands import BadArgument, Context, CommandError
     from discord.app_commands import CommandInvokeError, AppCommandError
     from discord.ext.commands import BadArgument
+    from discord.ext import tasks
 except ImportError:
     exit(
         "Either discord.py is not installed or you are running an older version of it. "
@@ -110,6 +111,25 @@ with open("config.json", "w") as f:
     # If you don't want to indent, you can remove the indent=2 from code
     json.dump(config, f, indent=2)
 
+scheduledPings = {}
+guilds = {}
+
+@tasks.loop(seconds=60)
+async def check_scheduled_pings():
+    for scheduledPingID, ping_dict in scheduledPings.items():
+        if datetime.datetime.now().astimezone(ZoneInfo("America/Los_Angeles")) >= ping_dict["study_time"]:
+            ping_str = "Its time to study:\n@"
+            guild = ping_dict["guild_obj"]
+            for member_id in ping_dict["user_ids"]:
+                ping_str += guild.get_member(member_id).name
+                ping_str += "\n@"
+            await guild.get_channel(guilds[guild.id]["Preferred Channel"]).send(ping_str)
+            scheduledPings.pop(scheduledPingID)
+
+@check_scheduled_pings.before_loop
+async def before_start():
+    await client.wait_until_ready()
+
 
 class StudyMananger(Client):
     def __init__(self, *, intents: Intents):
@@ -118,6 +138,7 @@ class StudyMananger(Client):
 
     async def setup_hook(self) -> None:
         """ This is called when the bot boots, to setup the global commands """
+        check_scheduled_pings.start()
         await self.tree.sync()
 
 
@@ -128,8 +149,6 @@ class StudyMananger(Client):
 botIntents = Intents.default()
 botIntents.members = True
 client = StudyMananger(intents=botIntents)
-scheduledPings = {}
-guilds = {}
 
 @client.event
 async def on_ready():
@@ -229,10 +248,6 @@ async def schedule_ping(interaction: Interaction, time: str, date: Optional[str]
     """ Post a message where anyone that reacts will be pinged at the scheduled time. """
     # Responds in the console that the command has been ran
     print(f"> {Style.BRIGHT}{interaction.user}{Style.RESET_ALL} used the schedule_ping command.")
-    
-    # Save guild info
-    global guilds
-    guilds[interaction.guild.id]["guild_obj"] = interaction.guild
 
     # Date Validation; Errors will catch in the global error handler
     pingDatetime = await parseDateTime(time, date);
@@ -250,6 +265,7 @@ async def schedule_ping(interaction: Interaction, time: str, date: Optional[str]
 
     global scheduledPings
     scheduledPings[message.id] = {}
+    scheduledPings[message.id]["guild_obj"] = interaction.guild
     scheduledPings[message.id]["user_ids"] = []
     scheduledPings[message.id]["user_ids"].append(interaction.user.id)
     scheduledPings[message.id]["study_time"] = pingDatetime
@@ -257,7 +273,7 @@ async def schedule_ping(interaction: Interaction, time: str, date: Optional[str]
 
 
 @client.tree.command()
-@app_commands.describe(channel = "Channel for bot to respond to.")
+@app_commands.describe(channel = "Channel for bot to respond in.")
 async def set_default_channel(interaction: Interaction, channel: TextChannel):
     """ Select which channel this bot puts scheduled messages """
     global guilds
@@ -268,17 +284,8 @@ async def set_default_channel(interaction: Interaction, channel: TextChannel):
         The channel this bot will respond in is ***{channel.name}***.
     """), ephemeral=True)
     with open("channel_prefs.json", "w") as f:
-        # Prune unserializable objects
-        guilds_temp = {}
-        for guild in guilds:
-            if "guild_obj" in guilds[guild]:
-                guilds_temp[guild] = guilds[guild].pop("guild_obj")
         # Dump guild info
         json.dump(guilds, f, indent=2)
-
-        # Put prune data back
-        for guild in guilds_temp:
-            guilds[guild]["guild_obj"] = guilds_temp[guild]
 
 
 @client.tree.error
