@@ -118,7 +118,7 @@ guilds = {}
 async def check_scheduled_pings():
     ids_to_pop = []
     stable_ping_agenda = scheduledPings.copy()
-    for scheduledPingID, ping_dict in stable_ping_agenda:
+    for scheduledPingID, ping_dict in stable_ping_agenda.items():
         if datetime.datetime.now().astimezone(ZoneInfo("America/Los_Angeles")) >= ping_dict["study_time"]:
             ping_str = "Its time to study:\n"
             guild = ping_dict["guild_obj"]
