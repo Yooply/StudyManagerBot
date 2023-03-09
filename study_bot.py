@@ -127,7 +127,7 @@ async def check_scheduled_pings():
             await guild.get_channel(guilds[guild.id]["Preferred Channel"]).send(ping_str)
             ids_to_pop.append(scheduledPingID)
     for ping_id in ids_to_pop:
-        scheduledPings.pop(ping_id)i
+        scheduledPings.pop(ping_id)
 
 @check_scheduled_pings.before_loop
 async def before_start():
