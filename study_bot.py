@@ -126,11 +126,11 @@ class StudyMananger(Client):
 # Since this is a simple bot to run 1 command over slash commands
 # We then do not need any intents to listen to events
 botIntents = Intents.default()
+botIntents.members = True
 client = StudyMananger(intents=botIntents)
-botChannelId = 1053602481214586912
 scheduledPings = {}
 guild_channels = {}
-scheduledTimes = []
+guilds = {}
 
 @client.event
 async def on_ready():
@@ -146,11 +146,31 @@ async def on_ready():
     """), end="\n\n")
     try:
         with open("channel_prefs.json", "w") as f:
-            guild_channels = json.load(f)
+            guilds = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         guild_channels = {}
 
 
+
+@client.event
+async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
+    """ Remove user from list to be pinged at scheduled time """
+    if payload.message_id not in scheduledPings:
+        return
+    
+    if payload.user_id in scheduledPings[payload.message_id]:
+        scheduledPings[payload.message_id].remove(payload.user_id)
+    
+
+
+@client.event
+async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
+    """ Add user to list of users to be pinged at appointed time """
+    if payload.message_id not in scheduledPings:
+        return
+    
+    if payload.user_id not in scheduledPings[payload.message_id]:
+        scheduledPings[payload.message_id].append(payload.user_id)
 
 
 async def parseDateTime(time: str, date: str) -> datetime.datetime:
@@ -209,6 +229,10 @@ async def schedule_ping(interaction: Interaction, time: str, date: Optional[str]
     """ Post a message where anyone that reacts will be pinged at the scheduled time. """
     # Responds in the console that the command has been ran
     print(f"> {Style.BRIGHT}{interaction.user}{Style.RESET_ALL} used the schedule_ping command.")
+    
+    # Save guild info
+    global guilds
+    guilds[interaction.guild.id]["guild_obj"] = interaction.guild
 
     # Date Validation; Errors will catch in the global error handler
     pingDatetime = await parseDateTime(time, date);
@@ -221,20 +245,25 @@ async def schedule_ping(interaction: Interaction, time: str, date: Optional[str]
     # Generate embed
     embed = await generateScheduledMeetingPrompt(interaction, pingDatetime)
 
-    response_channel = interaction.guild.get_channel(guild_channels[interaction.guild.id])
-    await response_channel.send(embed=embed)
+    response_channel = interaction.guild.get_channel(guilds[interaction.guild.id]["Preferred Channel"])
+    message = await response_channel.send(embed=embed)
+
+    global scheduledPings
+    scheduledPings[message.id] = []
+    scheduledPings[message.id].append(interaction.user.id)
+
 
 @client.tree.command()
 @app_commands.describe(channel = "Channel for bot to respond to.")
 async def set_default_channel(interaction: Interaction, channel: TextChannel):
     """ Select which channel this bot puts scheduled messages """
-    global guild_channels
-    guild_channels[interaction.guild.id] = channel.id
+    global guilds
+    guilds[interaction.guild.id]["Preferred Channel"] = channel.id
     await interaction.response.send_message(inspect.cleandoc(f"""
         The channel this bot will respond in is ***{channel.name}***.
     """), ephemeral=True)
     with open("channel_prefs.json", "w") as f:
-        json.dump(guild_channels, f)
+        json.dump(guilds, f, indent=2)
 
 @client.tree.error
 async def schedule_ping_error(interaction: Interaction, error: AppCommandError):
