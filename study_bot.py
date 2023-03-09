@@ -1,3 +1,4 @@
+from zoneinfo import ZoneInfo
 import requests
 import json
 import inspect
@@ -158,7 +159,7 @@ async def parseDateTime(time: str, date: str) -> datetime.datetime:
         except ValueError:
             raise CommandInvokeError(schedule_ping, BadArgument("Bad date"))
     else:
-        pDate = datetime.date.today()
+        pDate = datetime.datetime.now(ZoneInfo("America/Los_Angeles")).date()
         print(pDate)
     
     # Time validation
@@ -166,12 +167,12 @@ async def parseDateTime(time: str, date: str) -> datetime.datetime:
         fields = time.split(":")
         if len(fields) != 2:
             raise CommandInvokeError(schedule_ping, BadArgument("Bad time"))
-        pTime = datetime.time(int(fields[0]), int(fields[1]))
+        pTime = datetime.time(int(fields[0]), int(fields[1]), tzinfo=ZoneInfo("America/Los_Angeles"))
     except ValueError:
         raise CommandInvokeError(schedule_ping, BadArgument("Bad time"))
     
-    pingDatetime = (datetime.datetime.combine(pDate, pTime)).astimezone(datetime.timezone("PST"))
-    if (datetime.datetime.now()).astimezone(datetime.timezone("PST")) > pingDatetime:
+    pingDatetime = (datetime.datetime.combine(pDate, pTime))
+    if (datetime.datetime.now()).astimezone(ZoneInfo("America/Los_Angeles")) > pingDatetime:
         print(datetime.datetime.now())
         raise CommandInvokeError(schedule_ping, BadArgument("Datetime has already passed"))
 
