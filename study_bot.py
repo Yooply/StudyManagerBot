@@ -258,6 +258,8 @@ async def schedule_ping(interaction: Interaction, time: str, date: Optional[str]
 async def set_default_channel(interaction: Interaction, channel: TextChannel):
     """ Select which channel this bot puts scheduled messages """
     global guilds
+    if interaction.guild.id not in guilds:
+        guilds[interaction.guild.id] = {}
     guilds[interaction.guild.id]["Preferred Channel"] = channel.id
     await interaction.response.send_message(inspect.cleandoc(f"""
         The channel this bot will respond in is ***{channel.name}***.
