@@ -251,6 +251,7 @@ async def schedule_ping(interaction: Interaction, time: str, date: Optional[str]
     global scheduledPings
     scheduledPings[message.id] = []
     scheduledPings[message.id].append(interaction.user.id)
+    print(scheduledPings)
 
 
 @client.tree.command()
@@ -265,15 +266,26 @@ async def set_default_channel(interaction: Interaction, channel: TextChannel):
         The channel this bot will respond in is ***{channel.name}***.
     """), ephemeral=True)
     with open("channel_prefs.json", "w") as f:
+        # Prune unserializable objects
+        guilds_temp = {}
+        for guild in guilds:
+            if "guild_obj" in guilds[guild]:
+                guilds_temp[guild] = guilds[guild].pop("guild_obj")
+        # Dump guild info
         json.dump(guilds, f, indent=2)
 
-# @client.tree.error
-# async def schedule_ping_error(interaction: Interaction, error: AppCommandError):
-#    """ Error handler for errors raised in the /schedule_ping command """
-#    # Potentially unecessary now
-#    if isinstance(error, CommandInvokeError):
-#       fields = str(error).split(":")
-#       await interaction.response.send_message(f"**[Error]** Bad Command:{fields[2]}", ephemeral=True)
+        # Put prune data back
+        for guild in guilds_temp:
+            guilds[guild]["guild_obj"] = guilds_temp[guild]
+
+
+@client.tree.error
+async def schedule_ping_error(interaction: Interaction, error: AppCommandError):
+   """ Error handler for errors raised in the /schedule_ping command """
+   # Potentially unecessary now
+   if isinstance(error, CommandInvokeError):
+        fields = str(error).split(":")
+        await interaction.response.send_message(f"**[Error]** Bad Command:{fields[2]}", ephemeral=True)
 
 # Runs the bot with the token you provided
 handler = logging.FileHandler(filename='discord.log', encoding="utf-8", mode="w")
