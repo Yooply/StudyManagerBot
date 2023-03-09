@@ -144,6 +144,14 @@ async def on_ready():
         Use this URL to invite {client.user} to your server:
         {Fore.LIGHTBLUE_EX}https://discord.com/api/oauth2/authorize?client_id={client.user.id}&scope=applications.commands%20bot{Fore.RESET}
     """), end="\n\n")
+    try:
+        with open("channel_prefs.json", "w") as f:
+            guild_channels = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        guild_channels = {}
+
+
+
 
 async def parseDateTime(time: str, date: str) -> datetime.datetime:
     """ Helper to parse out datetime from a time and date strings. Returns datetime
@@ -225,6 +233,8 @@ async def set_default_channel(interaction: Interaction, channel: TextChannel):
     await interaction.response.send_message(inspect.cleandoc(f"""
         The channel this bot will respond in is ***{channel.name}***.
     """), ephemeral=True)
+    with open("channel_prefs.json", "w") as f:
+        json.dump(guild_channels, f)
 
 @client.tree.error
 async def schedule_ping_error(interaction: Interaction, error: AppCommandError):
