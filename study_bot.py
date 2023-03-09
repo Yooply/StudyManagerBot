@@ -116,15 +116,18 @@ guilds = {}
 
 @tasks.loop(seconds=60)
 async def check_scheduled_pings():
+    ids_to_pop = []
     for scheduledPingID, ping_dict in scheduledPings.items():
         if datetime.datetime.now().astimezone(ZoneInfo("America/Los_Angeles")) >= ping_dict["study_time"]:
             ping_str = "Its time to study:\n@"
             guild = ping_dict["guild_obj"]
             for member_id in ping_dict["user_ids"]:
-                ping_str += guild.get_member(member_id).name
+                ping_str += guild.get_member(member_id).mention
                 ping_str += "\n@"
             await guild.get_channel(guilds[guild.id]["Preferred Channel"]).send(ping_str)
-            scheduledPings.pop(scheduledPingID)
+            ids_to_pop.append(scheduledPingID)
+    for ping_id in ids_to_pop:
+        scheduledPings.pop(ping_id)i
 
 @check_scheduled_pings.before_loop
 async def before_start():
