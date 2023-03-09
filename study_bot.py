@@ -265,13 +265,13 @@ async def set_default_channel(interaction: Interaction, channel: TextChannel):
     with open("channel_prefs.json", "w") as f:
         json.dump(guilds, f, indent=2)
 
-@client.tree.error
-async def schedule_ping_error(interaction: Interaction, error: AppCommandError):
-    """ Error handler for errors raised in the /schedule_ping command """
-    # Potentially unecessary now
-    if isinstance(error, CommandInvokeError):
-        fields = str(error).split(":")
-        await interaction.response.send_message(f"**[Error]** Bad Command:{fields[2]}", ephemeral=True)
+# @client.tree.error
+# async def schedule_ping_error(interaction: Interaction, error: AppCommandError):
+#    """ Error handler for errors raised in the /schedule_ping command """
+#    # Potentially unecessary now
+#    if isinstance(error, CommandInvokeError):
+#       fields = str(error).split(":")
+#       await interaction.response.send_message(f"**[Error]** Bad Command:{fields[2]}", ephemeral=True)
 
 # Runs the bot with the token you provided
 handler = logging.FileHandler(filename='discord.log', encoding="utf-8", mode="w")
