@@ -129,7 +129,6 @@ botIntents = Intents.default()
 botIntents.members = True
 client = StudyMananger(intents=botIntents)
 scheduledPings = {}
-guild_channels = {}
 guilds = {}
 
 @client.event
@@ -145,34 +144,33 @@ async def on_ready():
         {Fore.LIGHTBLUE_EX}https://discord.com/api/oauth2/authorize?client_id={client.user.id}&scope=applications.commands%20bot{Fore.RESET}
     """), end="\n\n")
     try:
-        with open("channel_prefs.json", "w") as f:
+        with open("channel_prefs.json", "r") as f:
             guilds = json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
-        guild_channels = {}
+        print("JSON Load error")
+        guilds = {}
 
 
 
 @client.event
 async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
     """ Remove user from list to be pinged at scheduled time """
-    print("poc reaction remove")
     if payload.message_id not in scheduledPings:
         return
     
-    if payload.user_id in scheduledPings[payload.message_id]:
-        scheduledPings[payload.message_id].remove(payload.user_id)
+    if payload.user_id in scheduledPings[payload.message_id]["user_ids"]:
+        scheduledPings[payload.message_id]["user_ids"].remove(payload.user_id)
     
 
 
 @client.event
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     """ Add user to list of users to be pinged at appointed time """
-    print("poc reaction add")
     if payload.message_id not in scheduledPings:
         return
     
-    if payload.user_id not in scheduledPings[payload.message_id]:
-        scheduledPings[payload.message_id].append(payload.user_id)
+    if payload.user_id not in scheduledPings[payload.message_id]["user_ids"]:
+        scheduledPings[payload.message_id]["user_ids"].append(payload.user_id)
 
 
 async def parseDateTime(time: str, date: str) -> datetime.datetime:
@@ -251,8 +249,10 @@ async def schedule_ping(interaction: Interaction, time: str, date: Optional[str]
     message = await response_channel.send(embed=embed)
 
     global scheduledPings
-    scheduledPings[message.id] = []
-    scheduledPings[message.id].append(interaction.user.id)
+    scheduledPings[message.id] = {}
+    scheduledPings[message.id]["user_ids"] = []
+    scheduledPings[message.id]["user_ids"].append(interaction.user.id)
+    scheduledPings[message.id]["study_time"] = pingDatetime
     print(scheduledPings)
 
 
