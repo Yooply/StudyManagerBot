@@ -155,6 +155,7 @@ async def on_ready():
 @client.event
 async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
     """ Remove user from list to be pinged at scheduled time """
+    print("poc reaction remove")
     if payload.message_id not in scheduledPings:
         return
     
@@ -166,6 +167,7 @@ async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
 @client.event
 async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
     """ Add user to list of users to be pinged at appointed time """
+    print("poc reaction add")
     if payload.message_id not in scheduledPings:
         return
     
