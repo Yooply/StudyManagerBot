@@ -18,7 +18,7 @@ if sys.version_info < (3, 7):
 try:
     from discord import app_commands, Intents, Client, Interaction, Message, ui, Embed, ButtonStyle, TextChannel
     # from discord.ext.commands import BadArgument, Context, CommandError
-    from discord.app_commands import CommandInvokeError, AppCommandError
+    from discord.app_commands import CommandInvokeError
     from discord.ext.commands import BadArgument
     from discord.ext import tasks
 except ImportError:
@@ -111,6 +111,7 @@ with open("config.json", "w") as f:
     # If you don't want to indent, you can remove the indent=2 from code
     json.dump(config, f, indent=2)
 
+# Globals used to track scheduled pings and server info
 scheduledPings = {}
 guilds = {}
 
@@ -135,6 +136,10 @@ async def check_scheduled_pings():
 async def before_start():
     await client.wait_until_ready()
 
+class SchedulePingError(CommandInvokeError):
+    def __init__(self, command, e, msg):
+        super().__init__(command, e)
+        self.error_msg = msg
 
 class StudyMananger(Client):
     def __init__(self, *, intents: Intents):
@@ -201,15 +206,16 @@ async def parseDateTime(time: str, date: str) -> datetime.datetime:
     """ Helper to parse out datetime from a time and date strings. Returns datetime
         object representation of time and date string parameters.
     """
+    logging.debug(f"parseDateTime call: {time} {date}")
     if date:
         try:
             fields = date.split("/")
             if len(fields) < 3:
-                raise CommandInvokeError(schedule_ping, BadArgument("Bad date"))
+                raise SchedulePingError(parseDateTime, BadArgument("Bad Date"), "Incorrect Date Format: mm/dd/yyyy")
             year = int(fields[2])
             pDate = datetime.date(year, int(fields[0]), int(fields[1]))
         except ValueError:
-            raise CommandInvokeError(schedule_ping, BadArgument("Bad date"))
+            raise SchedulePingError(parseDateTime, BadArgument("Bad Date"), "Incorrect Date Format: mm/dd/yyyy")
     else:
         pDate = datetime.datetime.now(ZoneInfo("America/Los_Angeles")).date()
         print(pDate)
@@ -218,15 +224,15 @@ async def parseDateTime(time: str, date: str) -> datetime.datetime:
     try:
         fields = time.split(":")
         if len(fields) != 2:
-            raise CommandInvokeError(schedule_ping, BadArgument("Bad time"))
+            raise SchedulePingError(parseDateTime, BadArgument("Bad time"), "Incorrect time format: hh:mm using 24 hour time")
         pTime = datetime.time(int(fields[0]), int(fields[1]), tzinfo=ZoneInfo("America/Los_Angeles"))
     except ValueError:
-        raise CommandInvokeError(schedule_ping, BadArgument("Bad time"))
+        raise SchedulePingError(parseDateTime, BadArgument("Bad time"), "Incorrect time format: hh:mm using 24 hour time")
     
     pingDatetime = (datetime.datetime.combine(pDate, pTime))
     if (datetime.datetime.now()).astimezone(ZoneInfo("America/Los_Angeles")) > pingDatetime:
         print(datetime.datetime.now())
-        raise CommandInvokeError(schedule_ping, BadArgument("Datetime has already passed"))
+        raise SchedulePingError(parseDateTime, BadArgument("Datetime has already passed"), "This time has already passed")
 
     return pingDatetime
 
@@ -276,6 +282,28 @@ async def schedule_ping(interaction: Interaction, time: str, date: Optional[str]
     scheduledPings[message.id]["study_time"] = pingDatetime
     print(scheduledPings)
 
+@client.tree.command()
+async def study_manager_info(interaction: Interaction):
+    """ Synopsis of available commands """
+    help_message = inspect.cleandoc(f"""
+        > Hi I am a study manager bot. Currently I am pretty bare bones.
+        > 
+        > Currently I offer the following commands:
+        > `/set_default_channel <Channel>` A command that tells me where to put posts to schedule calls.
+        > > `Channel` The text channel this bot will respond in when scheduling pings and pinging.
+        > > Only needs to be run once per server once bot is online
+        > `/schedule_ping <time> <Optional[Date]>` Schedule a ping for the given time
+        > > `time` Time to schedule ping: hh:mm format. Currently all times are PST Sorry east coasters
+        > > `Optional[Date]` An optional date in mm:dd:yyyy format.
+        > > Will ping everyone who reacts to the generated post at the given time.
+        > > **Limitations**: Only supports PST times right now
+        > `study_manager_info` Commmand to show you this information
+        >
+        > Known Issues:
+        > * Only supports PST
+        > * Bot breaks if `/schedule_ping` is used before `/set_default_channel` is used once.
+    """)
+    interaction.response.send_message(help_message, ephemeral=True)
 
 @client.tree.command()
 @app_commands.describe(channel = "Channel for bot to respond in.")
@@ -297,9 +325,8 @@ async def set_default_channel(interaction: Interaction, channel: TextChannel):
 async def schedule_ping_error(interaction: Interaction, error: AppCommandError):
    """ Error handler for errors raised in the /schedule_ping command """
    # Potentially unecessary now
-   if isinstance(error, CommandInvokeError):
-        fields = str(error).split(":")
-        await interaction.response.send_message(f"**[Error]** Bad Command:{fields[2]}", ephemeral=True)
+   if isinstance(error, SchedulePingError):
+        await interaction.response.send_message(f"**[Error]** Bad Command:{error.error_msg}", ephemeral=True)
 
 # Runs the bot with the token you provided
 handler = logging.FileHandler(filename='discord.log', encoding="utf-8", mode="w")
