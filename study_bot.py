@@ -292,15 +292,15 @@ async def study_manager_info(interaction: Interaction):
         > 
         > Currently I offer the following commands:
         > `/set_default_channel <Channel>` A command that tells me where to put posts to schedule calls.
-        >> `Channel` The text channel this bot will respond in when scheduling pings and pinging.
-        >> Only needs to be run once per server once bot is online
+        > \t - `Channel` The text channel this bot will respond in when scheduling pings and pinging.
+        > \t Only needs to be run once per server once bot is online
         > `/schedule_ping <time> <Optional[Date]>` Schedule a ping for the given time
-        >> `time` Time to schedule ping: hh:mm format. Currently all times are PST Sorry east coasters
-        >> `Optional[Date]` An optional date in mm:dd:yyyy format.
-        >> Will ping everyone who reacts to the generated post at the given time.
-        >> **Limitations**: Only supports PST times right now
+        > \t - `time` Time to schedule ping: hh:mm format. Currently all times are PST Sorry east coasters
+        > \t - `Optional[Date]` An optional date in mm:dd:yyyy format.
+        > \t Will ping everyone who reacts to the generated post at the given time.
+        > \t **Limitations**: Only supports PST times right now
         > `study_manager_info` Commmand to show you this information
-        >
+        > 
         > Known Issues:
         > * Only supports PST
         > * Bot breaks if `/schedule_ping` is used before `/set_default_channel` is used once.
