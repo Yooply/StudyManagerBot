@@ -18,7 +18,7 @@ if sys.version_info < (3, 7):
 try:
     from discord import app_commands, Intents, Client, Interaction, Message, ui, Embed, ButtonStyle, TextChannel
     # from discord.ext.commands import BadArgument, Context, CommandError
-    from discord.app_commands import CommandInvokeError
+    from discord.app_commands import CommandInvokeError, AppCommandError
     from discord.ext.commands import BadArgument
     from discord.ext import tasks
 except ImportError:
@@ -157,6 +157,8 @@ class StudyMananger(Client):
 # Since this is a simple bot to run 1 command over slash commands
 # We then do not need any intents to listen to events
 botIntents = Intents.default()
+handler = logging.FileHandler(filename='discord.log', encoding="utf-8", mode="w")
+logging.getLogger().addHandler(handler)
 botIntents.members = True
 client = StudyMananger(intents=botIntents)
 
@@ -218,7 +220,7 @@ async def parseDateTime(time: str, date: str) -> datetime.datetime:
             raise SchedulePingError(parseDateTime, BadArgument("Bad Date"), "Incorrect Date Format: mm/dd/yyyy")
     else:
         pDate = datetime.datetime.now(ZoneInfo("America/Los_Angeles")).date()
-        print(pDate)
+        # print(pDate)
     
     # Time validation
     try:
@@ -231,7 +233,7 @@ async def parseDateTime(time: str, date: str) -> datetime.datetime:
     
     pingDatetime = (datetime.datetime.combine(pDate, pTime))
     if (datetime.datetime.now()).astimezone(ZoneInfo("America/Los_Angeles")) > pingDatetime:
-        print(datetime.datetime.now())
+        # print(datetime.datetime.now())
         raise SchedulePingError(parseDateTime, BadArgument("Datetime has already passed"), "This time has already passed")
 
     return pingDatetime
@@ -280,7 +282,7 @@ async def schedule_ping(interaction: Interaction, time: str, date: Optional[str]
     scheduledPings[message.id]["user_ids"] = []
     scheduledPings[message.id]["user_ids"].append(interaction.user.id)
     scheduledPings[message.id]["study_time"] = pingDatetime
-    print(scheduledPings)
+    # print(scheduledPings)
 
 @client.tree.command()
 async def study_manager_info(interaction: Interaction):
@@ -303,7 +305,7 @@ async def study_manager_info(interaction: Interaction):
         > * Only supports PST
         > * Bot breaks if `/schedule_ping` is used before `/set_default_channel` is used once.
     """)
-    interaction.response.send_message(help_message, ephemeral=True)
+    await interaction.response.send_message(help_message, ephemeral=True)
 
 @client.tree.command()
 @app_commands.describe(channel = "Channel for bot to respond in.")
@@ -329,5 +331,4 @@ async def schedule_ping_error(interaction: Interaction, error: AppCommandError):
         await interaction.response.send_message(f"**[Error]** Bad Command:{error.error_msg}", ephemeral=True)
 
 # Runs the bot with the token you provided
-handler = logging.FileHandler(filename='discord.log', encoding="utf-8", mode="w")
 client.run(token, log_handler=handler, log_level=logging.DEBUG)
