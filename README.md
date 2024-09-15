@@ -1,5 +1,9 @@
 # StudyManagerBot
 
+## What is this bot?
+
+This is a simple discord bot to schedule pinging people at a planned time based on reacting to a scheduling message. This bot was made before Discord implemented (events)[https://support.discord.com/hc/en-us/articles/4409494125719-Scheduled-Events] which essentially do the same thing, but way more fleshed out and with dedicated support. For the future you should likely just use Discord events unless you need something very custom tailored to your use case.
+
 ## How to use
 
 ### Install dependencies
